@@ -155,6 +155,34 @@ const ViewLoadingSkeleton: React.FC = () => (
 );
 
 export default function App() {
+  // Version-checker hook to prevent stale browser caches on new deployments
+  useEffect(() => {
+    const checkVersion = async () => {
+      try {
+        const res = await fetch(`/version.json?t=${Date.now()}`, { cache: 'no-store' });
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.timestamp) {
+            const storedVersionKey = 'sportsfly_app_version_timestamp';
+            const lastStored = localStorage.getItem(storedVersionKey);
+            if (!lastStored) {
+              localStorage.setItem(storedVersionKey, data.timestamp.toString());
+            } else if (Number(lastStored) !== data.timestamp) {
+              localStorage.setItem(storedVersionKey, data.timestamp.toString());
+              window.location.reload();
+            }
+          }
+        }
+      } catch (e) {
+        // Ignore network errors during version check
+      }
+    };
+
+    checkVersion();
+    const interval = setInterval(checkVersion, 60000); // Check every minute
+    return () => clearInterval(interval);
+  }, []);
+
   // Authentication State: defaults to false so user immediately sees the identical login page
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
